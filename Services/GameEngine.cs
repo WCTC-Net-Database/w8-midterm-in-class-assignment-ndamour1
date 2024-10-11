@@ -1,4 +1,4 @@
-﻿using W8_assignment_template.Data;
+using W8_assignment_template.Data;
 using W8_assignment_template.Helpers;
 using W8_assignment_template.Interfaces;
 using W8_assignment_template.Models.Characters;
@@ -15,6 +15,8 @@ public class GameEngine
     private readonly IRoomFactory _roomFactory;
     private ICharacter _player;
     private ICharacter _goblin;
+    private ICharacter _uruk;
+    private ICharacter _orrok;
 
     private List<IRoom> _rooms;
 
@@ -37,14 +39,42 @@ public class GameEngine
 
     private void AttackCharacter()
     {
-        // TODO Update this method to allow for attacking a selected monster in the room.
-        // TODO e.g. "Which monster would you like to attack?"
-        // TODO Right now it just attacks the first monster in the room.
-        // TODO It is ok to leave this functionality if there is only one monster in the room.
-        var target = _player.CurrentRoom.Characters.FirstOrDefault(c => c != _player);
-        if (target != null)
+        var target = _player.CurrentRoom.Characters[0];
+        if (_player.CurrentRoom.Characters.Count > 1)
         {
+            Console.WriteLine("Which monster would you like to attack?", ConsoleColor.Red);
+            for (int i = 0; i < _player.CurrentRoom.Characters.Count; ++i)
+            {
+                Console.WriteLine($"{i + 1}. {_player.CurrentRoom.Characters[i].Name}, {_player.CurrentRoom.Characters[i].Type}");
+            }
+            int chosen = Convert.ToInt32(Console.ReadLine());
+            target = _player.CurrentRoom.Characters[chosen - 1];
             _player.Attack(target);
+
+            if (_player.CurrentRoom.Characters[chosen - 1].HP > 0)
+            {
+                target.Attack(_player);
+            }
+            else
+            {
+                _player.HP = 10;
+                _player.CurrentRoom.RemoveCharacter(target);
+            }
+        }
+        else if (_player.CurrentRoom.Characters.Count == 1)
+        {
+            target = _player.CurrentRoom.Characters[0];
+            _player.Attack(target);
+
+            if (_player.CurrentRoom.Characters[0].HP > 0)
+            {
+                target.Attack(_player);
+            }
+            else
+            {
+                _player.HP = 10;
+                _player.CurrentRoom.RemoveCharacter(target);
+            }
         }
         else
         {
@@ -56,67 +86,97 @@ public class GameEngine
     {
         while (true)
         {
-            _mapManager.DisplayMap();
-            _outputManager.WriteLine("Choose an action:", ConsoleColor.Cyan);
-            _outputManager.WriteLine("1. Move North");
-            _outputManager.WriteLine("2. Move South");
-            _outputManager.WriteLine("3. Move East");
-            _outputManager.WriteLine("4. Move West");
-
-            // Check if there are characters in the current room to attack
-            if (_player.CurrentRoom.Characters.Any(c => c != _player))
+            if(_player.HP > 0)
             {
-                _outputManager.WriteLine("5. Attack");
+                _mapManager.DisplayMap();
+                _outputManager.WriteLine("Choose an action:", ConsoleColor.Cyan);
+                _outputManager.WriteLine("1. Move North");
+                _outputManager.WriteLine("2. Move South");
+                _outputManager.WriteLine("3. Move East");
+                _outputManager.WriteLine("4. Move West");
+
+                // Check if there are characters in the current room to attack
+                if (_player.CurrentRoom.Characters.Any(c => c != _player))
+                {
+                    _outputManager.WriteLine("5. Attack");
+                }
+
+                _outputManager.WriteLine("6. Exit Game");
+
+                _outputManager.Display();
+
+                var input = Console.ReadLine();
+
+                string? direction = null;
+                switch (input)
+                {
+                    case "1":
+                        direction = "north";
+                        break;
+                    case "2":
+                        direction = "south";
+                        break;
+                    case "3":
+                        direction = "east";
+                        break;
+                    case "4":
+                        direction = "west";
+                        break;
+                    case "5":
+                        if (_player.CurrentRoom.Characters.Any(c => c != _player))
+                        {
+                            _outputManager.Clear();
+                            AttackCharacter();
+                        }
+                        else
+                        {
+                            _outputManager.WriteLine("No characters to attack.", ConsoleColor.Red);
+                        }
+
+                        break;
+                    case "6":
+                        _outputManager.WriteLine("Exiting game...", ConsoleColor.Red);
+                        _outputManager.Display();
+                        Environment.Exit(0);
+                        break;
+                    default:
+                        _outputManager.WriteLine("Invalid selection. Please choose a valid option.", ConsoleColor.Red);
+                        break;
+                }
+
+                // Update map manager with the current room after movement
+                if (!string.IsNullOrEmpty(direction))
+                {
+                    _outputManager.Clear();
+                    _player.Move(direction);
+                    _mapManager.UpdateCurrentRoom(_player.CurrentRoom);
+                }
             }
-
-            _outputManager.WriteLine("6. Exit Game");
-
-            _outputManager.Display();
-
-            var input = Console.ReadLine();
-
-            string? direction = null;
-            switch (input)
+            else
             {
-                case "1":
-                    direction = "north";
-                    break;
-                case "2":
-                    direction = "south";
-                    break;
-                case "3":
-                    direction = "east";
-                    break;
-                case "4":
-                    direction = "west";
-                    break;
-                case "5":
-                    if (_player.CurrentRoom.Characters.Any(c => c != _player))
-                    {
-                        AttackCharacter();
-                    }
-                    else
-                    {
-                        _outputManager.WriteLine("No characters to attack.", ConsoleColor.Red);
-                    }
+                _outputManager.WriteLine($"{_player.Name} has fallen in battle.", ConsoleColor.Gray);
+                _outputManager.WriteLine($"Would you like to play again?", ConsoleColor.Gray);
+                _outputManager.WriteLine("1. Yes");
+                _outputManager.WriteLine("2. No");
+                _outputManager.Display();
 
-                    break;
-                case "6":
-                    _outputManager.WriteLine("Exiting game...", ConsoleColor.Red);
-                    _outputManager.Display();
-                    Environment.Exit(0);
-                    break;
-                default:
-                    _outputManager.WriteLine("Invalid selection. Please choose a valid option.", ConsoleColor.Red);
-                    break;
-            }
+                var input = Console.ReadLine();
 
-            // Update map manager with the current room after movement
-            if (!string.IsNullOrEmpty(direction))
-            {
-                _outputManager.Clear();
-                _player.Move(direction);
-                _mapManager.UpdateCurrentRoom(_player.CurrentRoom);
+                switch (input)
+                {
+                    case "1":
+                        _outputManager.Clear();
+                        _player.HP = 10;
+                        break;
+                    case "2":
+                        _outputManager.WriteLine("Exiting game...", ConsoleColor.Red);
+                        _outputManager.Display();
+                        Environment.Exit(0);
+                        break;
+                    default:
+                        _outputManager.WriteLine("Invalid selection. Please choose a valid option.", ConsoleColor.Red);
+                        break;
+                }
             }
         }
     }
@@ -124,10 +184,16 @@ public class GameEngine
     private void LoadMonsters()
     {
         _goblin = _context.Characters.OfType<Goblin>().FirstOrDefault();
+        _uruk = _context.Characters.OfType<Uruk>().FirstOrDefault();
+        _orrok = _context.Characters.OfType<Orrok>().FirstOrDefault();
 
         var random = new Random();
         var randomRoom = _rooms[random.Next(_rooms.Count)];
         randomRoom.AddCharacter(_goblin); // Use helper method
+
+        randomRoom = _rooms[random.Next(_rooms.Count)];
+        randomRoom.AddCharacter(_uruk);
+        randomRoom.AddCharacter(_orrok);
 
         // TODO Load your two new monsters here into the same room
     }
@@ -159,6 +225,8 @@ public class GameEngine
         var library = _roomFactory.CreateRoom("library", _outputManager);
         var armory = _roomFactory.CreateRoom("armory", _outputManager);
         var garden = _roomFactory.CreateRoom("garden", _outputManager);
+        var kitchen = _roomFactory.CreateRoom("kitchen", _outputManager);
+        var diningRoom = _roomFactory.CreateRoom("dining", _outputManager);
 
         entrance.North = treasureRoom;
         entrance.West = library;
@@ -169,12 +237,18 @@ public class GameEngine
 
         dungeonRoom.East = treasureRoom;
 
+        library.West = kitchen;
         library.East = entrance;
         library.South = armory;
 
         armory.North = library;
 
         garden.West = entrance;
+
+        kitchen.East = library;
+        kitchen.North = diningRoom;
+
+        diningRoom.South = kitchen;
 
         // Store rooms in a list for later use
         _rooms = new List<IRoom> { entrance, treasureRoom, dungeonRoom, library, armory, garden };
