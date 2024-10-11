@@ -1,4 +1,4 @@
-﻿[
+[
   {
     "$type": "Player",
     "Name": "Brave Sir Robin",
@@ -47,5 +47,21 @@
     "Level": 2,
     "HP": 8,
     "Treasure": null
+  },
+  {
+    "$type": "Uruk",
+    "Name": "Bolg of the North",
+    "Type": "Uruk",
+    "Level": 5,
+    "HP": 18,
+    "Treasure": "sword"
+  },
+  {
+    "$type": "Orrok",
+    "Name": "Hedcrumpah",
+    "Type": "Orrok",
+    "Level": 10,
+    "HP": 24,
+    "Treasure": "shoota"
   }
 ]
