@@ -37,22 +37,47 @@ public abstract class CharacterBase : ICharacter
     public void Attack(ICharacter target)
     {
         // TODO Update this method to ensure the character is removed after attacking them
-
-        OutputManager.WriteLine($"{Name} attacks {target.Name} with a chilling touch.", ConsoleColor.Blue);
-
-        if (this is Player player && target is ILootable targetWithTreasure && !string.IsNullOrEmpty(targetWithTreasure.Treasure))
+        Random rand = new Random();
+        int damage = rand.Next(1, 7);
+        int modifier = 1;
+        
+        if (target.HP % damage == 0 && damage != 1)
         {
-            OutputManager.WriteLine($"{Name} takes {targetWithTreasure.Treasure} from {target.Name}", ConsoleColor.Blue);
-            player.Gold += 10; // Assuming each treasure is worth 10 gold
-            targetWithTreasure.Treasure = null; // Treasure is taken
-            OutputManager.WriteLine($"{Name} now has {player.Gold} gold", ConsoleColor.Blue);
+            modifier = (target.HP / damage) - 1;
         }
-        else if (this is Player playerWithGold && target is Player targetWithGold && targetWithGold.Gold > 0)
+        else if ((target.HP % damage != 0) && ((target.HP - (target.HP % damage)) / damage != 0) && damage != 1)
         {
-            // we can't attack other players, but if we could we could take their gold here
-            OutputManager.WriteLine($"{Name} takes gold from {target.Name}", ConsoleColor.Blue);
-            playerWithGold.Gold += targetWithGold.Gold;
-            targetWithGold.Gold = 0; // Gold is taken
+            modifier = (target.HP - (target.HP % damage)) / damage;
+        }
+        else
+        {
+            modifier = 1;
+        }
+        int totalDamage = damage * modifier;
+        
+        OutputManager.WriteLine($"{Name} attacks {target.Name}.", ConsoleColor.Blue);
+        target.HP -= totalDamage;
+        if (target.HP > 0)
+        {
+            OutputManager.WriteLine($"{target.Name} took {totalDamage} damage.\n{target.Name}'s HP is at {target.HP}.", ConsoleColor.Red);
+        }
+        else
+        {
+            OutputManager.WriteLine($"{target.Name} took {totalDamage} damage.\n{target.Name} has been defeated.", ConsoleColor.Red);
+            if (this is Player player && target is ILootable targetWithTreasure && !string.IsNullOrEmpty(targetWithTreasure.Treasure))
+            {
+                OutputManager.WriteLine($"{Name} takes {targetWithTreasure.Treasure} from {target.Name}", ConsoleColor.Blue);
+                player.Gold += 10; // Assuming each treasure is worth 10 gold
+                targetWithTreasure.Treasure = null; // Treasure is taken
+                OutputManager.WriteLine($"{Name} now has {player.Gold} gold", ConsoleColor.Blue);
+            }
+            else if (this is Player playerWithGold && target is Player targetWithGold && targetWithGold.Gold > 0)
+            {
+                // we can't attack other players, but if we could we could take their gold here
+                OutputManager.WriteLine($"{Name} takes gold from {target.Name}", ConsoleColor.Blue);
+                playerWithGold.Gold += targetWithGold.Gold;
+                targetWithGold.Gold = 0; // Gold is taken
+            }
         }
     }
 
